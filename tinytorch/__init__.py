@@ -1,7 +1,5 @@
 from ._tensor import Tensor
-from ._tensor import ones
-from ._tensor import zeros
-from ._tensor import constant
+from ._tensor import ones, zeros, constant, empty,randn
 
 # functional
 from ._pointwise_ops import exp, sin, cos, sigmoid

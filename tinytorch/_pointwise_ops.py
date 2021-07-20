@@ -66,6 +66,27 @@ class Cos(Function):
         return ret
 
 
+def square(i):
+    x = Tensor.convert(i)
+    return Tensor.Wrapper(Square())(x)
+
+
+class Square(Function):
+    @staticmethod
+    def forward(ctx, x):
+        output = Tensor()
+        output.data = np.square(x.data)
+        # save the N
+        ctx.save_for_backward(x.data)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = Tensor()
+        x, = ctx.saved_tensors
+        output.data = 2 * x
+        return output
+
 def sigmoid(i):
     x = Tensor.convert(i)
     return Tensor.Wrapper(Sigmoid())(x)

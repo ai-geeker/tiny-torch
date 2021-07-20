@@ -1,5 +1,5 @@
 import numpy as np
-from tinytorch.autograd import function
+from tinytorch.autograd import Function
 
 class Engine:
     def __init__(self):
@@ -52,10 +52,12 @@ class Tensor:
                 output.grad_fn = output_grad_fn
             return output
 
-
-    def __init__(self):
-        self.data = None
-        self._grad_ = None
+    def __init__(self, data=None, requires_grad=False):
+        if isinstance(data, Tensor):
+            self.data = data.data
+        else:
+            self.data = data
+        self._grad_ = requires_grad
         self.requires_grad = False
         self.grad_fn = None
         self.is_leaf = True
@@ -125,6 +127,17 @@ class Tensor:
         wrapper = Tensor.Wrapper(Sum())
         return wrapper(self)
 
+    def mean(self):
+        wrapper = Tensor.Wrapper(Mean())
+        return wrapper(self)
+
+    def max(self):
+        wrapper = Tensor.Wrapper(Max())
+        return wrapper(self)
+
+    def min(self):
+        wrapper = Tensor.Wrapper(Min())
+        return wrapper(self)
 
     def backward(self, gradient=None):
         if not self.requires_grad:
@@ -142,7 +155,7 @@ class Tensor:
 def constant(v):
     output = Tensor()
     output.is_leaf = True
-    output.data = v
+    output.data = np.array(v)
     return output
 
 
@@ -161,6 +174,12 @@ def zeros(size, requires_grad=False):
     return output
 
 
+def empty(size, requires_grad=False):
+    output = Tensor()
+    output.requires_grad = requires_grad
+    output.data = np.empty(size)
+    return output
+
 def randn(size, requires_grad=False):
     output: Tensor = Tensor()
     output.requires_grad = requires_grad
@@ -171,7 +190,7 @@ def randn(size, requires_grad=False):
     return output
 
 
-class Add(function.Function):
+class Add(Function):
     @staticmethod
     def forward(ctx, a, b):
         output = Tensor()
@@ -184,7 +203,7 @@ class Add(function.Function):
         return grad_output, grad_output
 
 
-class Sum(function.Function):
+class Sum(Function):
     @staticmethod
     def forward(ctx, i):
         output = Tensor()
@@ -198,7 +217,7 @@ class Sum(function.Function):
         return output
 
 
-class Neg(function.Function):
+class Neg(Function):
     @staticmethod
     def forward(ctx, i):
         output = Tensor()
@@ -213,7 +232,7 @@ class Neg(function.Function):
         return output
 
 
-class Sub(function.Function):
+class Sub(Function):
     @staticmethod
     def forward(ctx, a, b):
         output = Tensor()
@@ -227,7 +246,7 @@ class Sub(function.Function):
         return grad_output, neg_grad_output
 
 
-class Mul(function.Function):
+class Mul(Function):
     @staticmethod
     def forward(ctx, a, b):
         output = Tensor()
@@ -245,7 +264,7 @@ class Mul(function.Function):
         return grad_a_output, grad_b_output
 
 
-class Matmul(function.Function):
+class Matmul(Function):
     @staticmethod
     def forward(ctx, w, x):
         output = Tensor()
@@ -263,7 +282,7 @@ class Matmul(function.Function):
         return grad_w_output, grad_x_output
 
 
-class Pow(function.Function):
+class Pow(Function):
     @staticmethod
     def forward(ctx, a, b):
         result = Tensor()
@@ -281,4 +300,54 @@ class Pow(function.Function):
         dy_da.data = (b.data * np.pow(a.data, b.data - 1)) * grad_output.data
         dy_db.data = result.data * np.log(np.a) * grad_output.data
         return dy_da, dy_db
+
+class Mean(Function):
+    @staticmethod
+    def forward(ctx, i):
+        output = Tensor()
+        output.data = i.data.mean()
+        # save the N
+        ctx.save_for_backward(i.data.size)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = Tensor()
+        N, = ctx.saved_tensors
+        output.data = grad_output.data / N
+        return output
+
+
+class Max(Function):
+    @staticmethod
+    def forward(ctx, i):
+        output = Tensor()
+        output.data = i.data.min()
+        # save the N
+        ctx.save_for_backward(i.data.size)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = Tensor()
+        N, = ctx.saved_tensors
+        output.data = grad_output.data / N
+        return output
+
+
+class Min(Function):
+    @staticmethod
+    def forward(ctx, i):
+        output = Tensor()
+        output.data = i.data.min()
+        # save the N
+        ctx.save_for_backward(i.data.size)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        output = Tensor()
+        N, = ctx.saved_tensors
+        output.data = grad_output.data / N
+        return output
 
