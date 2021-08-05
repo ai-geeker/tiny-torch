@@ -119,6 +119,14 @@ class Tensor:
         wrapper = Tensor.Wrapper(Mul())
         return wrapper(Tensor.convert(other), self)
 
+    def __truediv__(self, other):
+        wrapper = Tensor.Wrapper(Div())
+        return wrapper(self, Tensor.convert(other))
+
+    def __rtruediv__(self, other):
+        wrapper = Tensor.Wrapper(Div())
+        return wrapper(Tensor.convert(other), self)
+
     def __matmul__(self, other):
         wrapper = Tensor.Wrapper(Matmul())
         return wrapper(self, Tensor.convert(other))
@@ -261,6 +269,24 @@ class Mul(Function):
         a, b = ctx.saved_tensors
         grad_a_output.data = b.data * grad_output.data
         grad_b_output.data = a.data * grad_output.data
+        return grad_a_output, grad_b_output
+
+
+class Div(Function):
+    @staticmethod
+    def forward(ctx, a, b):
+        output = Tensor()
+        output.data = a.data / b.data
+        ctx.save_for_backward(a, b)
+        return output
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_a_output = Tensor()
+        grad_b_output = Tensor()
+        a, b = ctx.saved_tensors
+        grad_a_output.data = 1 / b.data * grad_output.data
+        grad_b_output.data = - a.data / (b.data * b.data) * grad_output.data
         return grad_a_output, grad_b_output
 
 

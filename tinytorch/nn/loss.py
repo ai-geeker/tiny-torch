@@ -2,6 +2,7 @@ import tinytorch as torch
 from tinytorch.nn import Module
 import tinytorch.nn.functional as F
 
+
 class MSELoss(Module):
     def __init__(self, reduction: str = 'mean'):
         super(MSELoss, self).__init__()
